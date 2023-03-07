@@ -104,6 +104,23 @@ impl Universe {
         self.cells = cells;
     }
 
+    pub fn toggle_cell(&mut self, row: u32, column: u32) {
+        let idx = self.get_index(row, column);
+        log!(
+            "toggling state of ({:?}, {:?})",
+            row,
+            column
+        );
+        self.cells.toggle(idx);
+    }
+
+    fn clear_cells(&mut self,  start:(u32,u32), end:(u32,u32)) {
+        for row in start.0..end.0 {
+            for column in start.1..end.1 {
+                self.cells.set(self.get_index(row, column), false);
+            }
+        }
+    }
 
     pub fn cells(&self) -> *const u32 {
         self.cells.as_slice().as_ptr()
@@ -118,7 +135,7 @@ impl Universe {
         let mut cells = FixedBitSet::with_capacity(size);
 
         for i in 0..size {
-            cells.set(i, js_sys::Math::random() < 0.5);
+            cells.set(i, i % 2 == 0 || i % 7 == 0);
         }
 
         Universe {
@@ -126,6 +143,20 @@ impl Universe {
             height,
             cells,
         }
+    }
+
+    pub fn clear(&mut self) {
+        self.init_cells();
+    }
+
+    pub fn random(&mut self) {
+        let size = (self.width * self.height) as usize;
+        let mut cells = FixedBitSet::with_capacity(size);
+
+        for i in 0..size {
+            cells.set(i, js_sys::Math::random() < 0.5);
+        }
+        self.cells = cells;
     }
 
     pub fn tick(&mut self) {
@@ -137,6 +168,7 @@ impl Universe {
                 let cell = self.cells[idx];
                 let live_neighbors = self.live_neighbor_count(row, col);
 
+                /*
                 log!(
                     "cell [{}, {}] is initially {:?} and has {} live neighbors",
                     row,
@@ -144,6 +176,7 @@ impl Universe {
                     cell,
                     live_neighbors
                 );
+                */
 
                 next.set(idx, match (cell, live_neighbors) {
                     (true, x) if x < 2 => false,
@@ -157,6 +190,89 @@ impl Universe {
         }
 
         self.cells = next;
+    }
+
+    pub fn insert_glider(&mut self, row: u32, column: u32) {
+        self.clear_cells((row-2, column-2), (row+2, column+2));
+        self.cells.set(self.get_index(row, column-1), true);
+        self.cells.set(self.get_index(row-1, column+1), true);
+        self.cells.set(self.get_index(row, column+1), true);
+        self.cells.set(self.get_index(row+1, column), true);
+        self.cells.set(self.get_index(row+1, column+1), true);
+    }
+
+    pub fn insert_pulsar(&mut self, row: u32, column: u32) {
+        self.clear_cells((row-7, column-7), (row+7, column+7));
+
+        self.cells.set(self.get_index(row-6, column-2), true);
+        self.cells.set(self.get_index(row-6, column-3), true);
+        self.cells.set(self.get_index(row-6, column-4), true);
+
+        self.cells.set(self.get_index(row-4, column-6), true);
+        self.cells.set(self.get_index(row-3, column-6), true);
+        self.cells.set(self.get_index(row-2, column-6), true);
+
+        self.cells.set(self.get_index(row-4, column-1), true);
+        self.cells.set(self.get_index(row-3, column-1), true);
+        self.cells.set(self.get_index(row-2, column-1), true);
+
+        self.cells.set(self.get_index(row-1, column-2), true);
+        self.cells.set(self.get_index(row-1, column-3), true);
+        self.cells.set(self.get_index(row-1, column-4), true);
+
+        //
+
+        self.cells.set(self.get_index(row-6, column+2), true);
+        self.cells.set(self.get_index(row-6, column+3), true);
+        self.cells.set(self.get_index(row-6, column+4), true);
+
+        self.cells.set(self.get_index(row-4, column+6), true);
+        self.cells.set(self.get_index(row-3, column+6), true);
+        self.cells.set(self.get_index(row-2, column+6), true);
+
+        self.cells.set(self.get_index(row-4, column+1), true);
+        self.cells.set(self.get_index(row-3, column+1), true);
+        self.cells.set(self.get_index(row-2, column+1), true);
+
+        self.cells.set(self.get_index(row-1, column+2), true);
+        self.cells.set(self.get_index(row-1, column+3), true);
+        self.cells.set(self.get_index(row-1, column+4), true);
+
+        //
+
+        self.cells.set(self.get_index(row+6, column-2), true);
+        self.cells.set(self.get_index(row+6, column-3), true);
+        self.cells.set(self.get_index(row+6, column-4), true);
+
+        self.cells.set(self.get_index(row+4, column-6), true);
+        self.cells.set(self.get_index(row+3, column-6), true);
+        self.cells.set(self.get_index(row+2, column-6), true);
+
+        self.cells.set(self.get_index(row+4, column-1), true);
+        self.cells.set(self.get_index(row+3, column-1), true);
+        self.cells.set(self.get_index(row+2, column-1), true);
+
+        self.cells.set(self.get_index(row+1, column-2), true);
+        self.cells.set(self.get_index(row+1, column-3), true);
+        self.cells.set(self.get_index(row+1, column-4), true);
+
+        //
+
+        self.cells.set(self.get_index(row+6, column+2), true);
+        self.cells.set(self.get_index(row+6, column+3), true);
+        self.cells.set(self.get_index(row+6, column+4), true);
+
+        self.cells.set(self.get_index(row+4, column+6), true);
+        self.cells.set(self.get_index(row+3, column+6), true);
+        self.cells.set(self.get_index(row+2, column+6), true);
+
+        self.cells.set(self.get_index(row+4, column+1), true);
+        self.cells.set(self.get_index(row+3, column+1), true);
+        self.cells.set(self.get_index(row+2, column+1), true);
+
+        self.cells.set(self.get_index(row+1, column+2), true);
+        self.cells.set(self.get_index(row+1, column+3), true);
+        self.cells.set(self.get_index(row+1, column+4), true);
     }
 }
 
